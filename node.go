@@ -77,7 +77,7 @@ func (l *Links) validate() (err error) {
 
 		if !(isString || isLink) {
 			return fmt.Errorf(
-				"The %s member of the links object was not a string or link object",
+				"the %s member of the links object was not a string or link object",
 				k,
 			)
 		}

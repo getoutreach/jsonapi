@@ -184,7 +184,6 @@ func TestUnmarshalToStructWithPointerAttr_BadType_Struct(t *testing.T) {
 
 func TestUnmarshalToStructWithPointerAttr_BadType_IntSlice(t *testing.T) {
 	out := new(WithPointer)
-	type FooStruct struct{ A, B int }
 	in := map[string]interface{}{
 		"name": []int{4, 5}, // This is the wrong type.
 	}
@@ -1155,19 +1154,19 @@ func TestUnmarshalNestedStruct(t *testing.T) {
 				"boss":       boss,
 				"founded-at": "2016-08-17T08:27:12Z",
 				"teams": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"name": "Dev",
 						"members": []map[string]interface{}{
-							map[string]interface{}{"firstname": "Sean"},
-							map[string]interface{}{"firstname": "Iz"},
+							{"firstname": "Sean"},
+							{"firstname": "Iz"},
 						},
 						"leader": map[string]interface{}{"firstname": "Iz"},
 					},
-					map[string]interface{}{
+					{
 						"name": "DxE",
 						"members": []map[string]interface{}{
-							map[string]interface{}{"firstname": "Akshay"},
-							map[string]interface{}{"firstname": "Peri"},
+							{"firstname": "Akshay"},
+							{"firstname": "Peri"},
 						},
 						"leader": map[string]interface{}{"firstname": "Peri"},
 					},
@@ -1304,5 +1303,33 @@ func TestUnmarshalNestedStructSlice(t *testing.T) {
 	if out.Teams[0].Members[0].Firstname != "Philip J." {
 		t.Fatalf("Nested struct not unmarshalled: Expected `Philip J.` but got `%s`",
 			out.Teams[0].Members[0].Firstname)
+	}
+}
+
+func TestUnmarshalPayload_SkipField(t *testing.T) {
+	type Foo struct {
+		ID  string `jsonapi:"primary,foo"`
+		Bar string `jsonapi:"-"`
+		Baz string `jsonapi:"attr,baz"`
+	}
+
+	data := `{"data":{"type":"foo","id":"1","attributes":{"baz":"don't skip me!"}}}`
+	b := bytes.NewBufferString(data)
+
+	var out Foo
+	if err := UnmarshalPayload(b, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if e, a := "1", out.ID; e != a {
+		t.Errorf("expected ID to be \"%s\", got \"%s\"", e, a)
+	}
+
+	if e, a := "", out.Bar; e != a {
+		t.Errorf("expected skipped field (Bar) to be blank, got \"%s\"", a)
+	}
+
+	if e, a := "don't skip me!", out.Baz; e != a {
+		t.Errorf("expected Baz to be \"%s\", got \"%s\"", e, a)
 	}
 }

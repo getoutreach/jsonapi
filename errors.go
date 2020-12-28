@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // MarshalErrors writes a JSON API response using the given `[]error`.
@@ -49,4 +50,17 @@ type ErrorObject struct {
 // Error implements the `Error` interface.
 func (e *ErrorObject) Error() string {
 	return fmt.Sprintf("Error: %s %s\n", e.Title, e.Detail)
+}
+
+// MultiError allows multiple JSON:API compliant errors to be returned as a singular
+// stdlib error.
+type MultiError []*ErrorObject
+
+// Error implements the error interface for MultiError.
+func (m MultiError) Error() string {
+	errs := make([]string, 0, len(m))
+	for i := range m {
+		errs = append(errs, m[i].Error())
+	}
+	return strings.Join(errs, ", ")
 }

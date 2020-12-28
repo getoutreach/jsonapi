@@ -14,7 +14,7 @@ import (
 var (
 	// ErrBadJSONAPIStructTag is returned when the Struct field's JSON API
 	// annotation is invalid.
-	ErrBadJSONAPIStructTag = errors.New("Bad jsonapi struct tag format")
+	ErrBadJSONAPIStructTag = errors.New("bad jsonapi struct tag format")
 	// ErrBadJSONAPIID is returned when the Struct JSON API annotated "id" field
 	// was not a valid numeric type.
 	ErrBadJSONAPIID = errors.New(
@@ -208,14 +208,14 @@ func visitModelNode(model interface{}, included *map[string]*Node,
 	for i := 0; i < modelValue.NumField(); i++ {
 		structField := modelValue.Type().Field(i)
 		tag := structField.Tag.Get(annotationJSONAPI)
-		if tag == "" {
+		if tag == "" || tag == "-" {
 			continue
 		}
 
 		fieldValue := modelValue.Field(i)
 		fieldType := modelType.Field(i)
 
-		args := strings.Split(tag, annotationSeperator)
+		args := strings.Split(tag, annotationSeparator)
 
 		if len(args) < 1 {
 			er = ErrBadJSONAPIStructTag

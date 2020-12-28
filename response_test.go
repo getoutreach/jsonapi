@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 )
@@ -279,10 +280,10 @@ func TestWithOmitsEmptyAnnotationOnAttribute(t *testing.T) {
 }
 
 func TestMarshalIDPtr(t *testing.T) {
-	id, make, model := "123e4567-e89b-12d3-a456-426655440000", "Ford", "Mustang"
+	id, _make, model := "123e4567-e89b-12d3-a456-426655440000", "Ford", "Mustang"
 	car := &Car{
 		ID:    &id,
-		Make:  &make,
+		Make:  &_make,
 		Model: &model,
 	}
 
@@ -629,7 +630,7 @@ func TestSupportsMetable(t *testing.T) {
 		t.Fatalf("Expected data.meta")
 	}
 
-	meta := Meta(*data.Meta)
+	meta := *data.Meta
 	if e, a := "extra details regarding the blog", meta["detail"]; e != a {
 		t.Fatalf("Was expecting meta.detail to be %q, got %q", e, a)
 	}
@@ -898,6 +899,29 @@ func TestMarshal_InvalidIntefaceArgument(t *testing.T) {
 	}
 	if err := MarshalPayload(out, Book{}); err != ErrUnexpectedType {
 		t.Fatal("Was expecting an error")
+	}
+}
+
+func TestMarshal_SkipField(t *testing.T) {
+	type Foo struct {
+		ID  string `jsonapi:"primary,foo"`
+		Bar string `jsonapi:"-"`
+		Baz string `jsonapi:"attr,baz"`
+	}
+
+	f := Foo{
+		ID:  "1",
+		Bar: "skip me!",
+		Baz: "don't skip me!",
+	}
+
+	var b bytes.Buffer
+	if err := MarshalPayload(&b, &f); err != nil {
+		t.Fatal(err)
+	}
+
+	if idx := strings.Index(b.String(), `"skip me!"`); idx != -1 {
+		t.Fatal("expected bar to be skipped, was not")
 	}
 }
 

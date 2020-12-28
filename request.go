@@ -13,22 +13,22 @@ import (
 )
 
 const (
-	unsupportedStructTagMsg = "Unsupported jsonapi tag annotation, %s"
+	unsupportedStructTagMsg = "unsupported jsonapi tag annotation, %s"
 )
 
 var (
 	// ErrInvalidTime is returned when a struct has a time.Time type field, but
 	// the JSON value was not a unix timestamp integer.
-	ErrInvalidTime = errors.New("Only numbers can be parsed as dates, unix timestamps")
+	ErrInvalidTime = errors.New("only numbers can be parsed as dates, unix timestamps")
 	// ErrInvalidISO8601 is returned when a struct has a time.Time type field and includes
 	// "iso8601" in the tag spec, but the JSON value was not an ISO8601 timestamp string.
-	ErrInvalidISO8601 = errors.New("Only strings can be parsed as dates, ISO8601 timestamps")
+	ErrInvalidISO8601 = errors.New("only strings can be parsed as dates, ISO8601 timestamps")
 	// ErrUnknownFieldNumberType is returned when the JSON value was a float
 	// (numeric) but the Struct field was a non numeric type (i.e. not int, uint,
 	// float, etc)
-	ErrUnknownFieldNumberType = errors.New("The struct field was not of a known number type")
+	ErrUnknownFieldNumberType = errors.New("the struct field was not of a known number type")
 	// ErrInvalidType is returned when the given type is incompatible with the expected type.
-	ErrInvalidType = errors.New("Invalid type provided") // I wish we used punctuation.
+	ErrInvalidType = errors.New("invalid type provided") // I wish we used punctuation.
 
 )
 
@@ -154,7 +154,7 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 	for i := 0; i < modelValue.NumField(); i++ {
 		fieldType := modelType.Field(i)
 		tag := fieldType.Tag.Get("jsonapi")
-		if tag == "" {
+		if tag == "" || tag == "-" {
 			continue
 		}
 
@@ -182,7 +182,7 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			// Check the JSON API Type
 			if data.Type != args[1] {
 				er = fmt.Errorf(
-					"Trying to Unmarshal an object of type %#v, but %#v does not match",
+					"trying to Unmarshal an object of type %#v, but %#v does not match",
 					data.Type,
 					args[1],
 				)
@@ -553,7 +553,7 @@ func handleNumeric(
 
 func handlePointer(
 	attribute interface{},
-	args []string,
+	_ []string,
 	fieldType reflect.Type,
 	fieldValue reflect.Value,
 	structField reflect.StructField) (reflect.Value, error) {
