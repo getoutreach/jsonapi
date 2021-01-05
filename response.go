@@ -34,6 +34,11 @@ var (
 // "data": {...}. If this method is given a slice of pointers, this method will
 // serialize in the form "data": [...]
 //
+// The topLevelLinks formal parameter allows the caller to append or set links on
+// the top level of the returned JSON document. This is particularly useful for
+// links like pagination links for an array of records. It prevents the need to
+// create an extraneous slice type for a model.
+//
 // One Example: you could pass it, w, your http.ResponseWriter, and, models, a
 // ptr to a Blog to be written to the response body:
 //
@@ -43,7 +48,7 @@ var (
 //		 w.Header().Set("Content-Type", jsonapi.MediaType)
 //		 w.WriteHeader(http.StatusOK)
 //
-//		 if err := jsonapi.MarshalPayload(w, blog); err != nil {
+//		 if err := jsonapi.MarshalPayload(w, blog, nil); err != nil {
 //			 http.Error(w, err.Error(), http.StatusInternalServerError)
 //		 }
 //	 }
@@ -57,13 +62,13 @@ var (
 //		 w.Header().Set("Content-Type", jsonapi.MediaType)
 //		 w.WriteHeader(http.StatusOK)
 //
-//		 if err := jsonapi.MarshalPayload(w, blogs); err != nil {
+//		 if err := jsonapi.MarshalPayload(w, blogs, nil); err != nil {
 //			 http.Error(w, err.Error(), http.StatusInternalServerError)
 //		 }
 //	 }
 //
-func MarshalPayload(w io.Writer, models interface{}) error {
-	payload, err := Marshal(models)
+func MarshalPayload(w io.Writer, models interface{}, topLevelLinks *Links) error {
+	payload, err := Marshal(models, topLevelLinks)
 	if err != nil {
 		return err
 	}
@@ -74,7 +79,7 @@ func MarshalPayload(w io.Writer, models interface{}) error {
 // Marshal does the same as MarshalPayload except it just returns the payload
 // and doesn't write out results. Useful if you use your own JSON rendering
 // library.
-func Marshal(models interface{}) (Payloader, error) {
+func Marshal(models interface{}, topLevelLinks *Links) (Payloader, error) {
 	switch vals := reflect.ValueOf(models); vals.Kind() {
 	case reflect.Slice:
 		m, err := convertToSliceInterface(&models)
@@ -95,6 +100,18 @@ func Marshal(models interface{}) (Payloader, error) {
 			payload.Links = linkableModels.JSONAPILinks()
 		}
 
+		// Add links to the top level of the document if they exist.
+		if topLevelLinks != nil {
+			if payload.Links == nil {
+				payload.Links = new(Links)
+				*payload.Links = make(Links)
+			}
+
+			for k, v := range *topLevelLinks {
+				(*payload.Links)[k] = v
+			}
+		}
+
 		if metableModels, ok := models.(Metable); ok {
 			payload.Meta = metableModels.JSONAPIMeta()
 		}
@@ -105,7 +122,25 @@ func Marshal(models interface{}) (Payloader, error) {
 		if reflect.Indirect(vals).Kind() != reflect.Struct {
 			return nil, ErrUnexpectedType
 		}
-		return marshalOne(models)
+
+		payload, err := marshalOne(models)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add links to the top level of the document if they exist.
+		if topLevelLinks != nil {
+			if payload.Links == nil {
+				payload.Links = new(Links)
+				*payload.Links = make(Links)
+			}
+
+			for k, v := range *topLevelLinks {
+				(*payload.Links)[k] = v
+			}
+		}
+
+		return payload, nil
 	default:
 		return nil, ErrUnexpectedType
 	}
@@ -118,8 +153,8 @@ func Marshal(models interface{}) (Payloader, error) {
 //
 // models interface{} should be either a struct pointer or a slice of struct
 // pointers.
-func MarshalPayloadWithoutIncluded(w io.Writer, model interface{}) error {
-	payload, err := Marshal(model)
+func MarshalPayloadWithoutIncluded(w io.Writer, model interface{}, topLevelLinks *Links) error {
+	payload, err := Marshal(model, topLevelLinks)
 	if err != nil {
 		return err
 	}
